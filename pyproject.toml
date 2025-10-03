@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yars"
+version = "0.1.0"
+description = "YARS (Yet Another Reddit Scraper) - A Python package for scraping Reddit"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    {name = "ktthross"},
+]
+keywords = ["reddit", "scraping", "osint", "api"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "flask>=3.0.3",
+    "meta-ai-api>=1.2.1",
+    "pygments>=2.18.0",
+    "requests>=2.32.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/ktthross/yars"
+Repository = "https://github.com/ktthross/yars"
+Issues = "https://github.com/ktthross/yars/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yars"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0", 
+    "flake8>=6.0.0",
+]

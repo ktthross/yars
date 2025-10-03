@@ -1,14 +1,6 @@
 import json
-import os
-import sys
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-src_path = os.path.join(project_root, "src")
-sys.path.append(src_path)
-
-from yars.yars import YARS
-from yars.utils import display_results, download_image
+from yars import YARS, display_results, download_image
 
 # Initialize the YARS Reddit miner
 miner = YARS()
