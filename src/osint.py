@@ -1,4 +1,4 @@
-from yars.yars import YARS
+from yars import YARS
 from meta_ai_api import MetaAI
 import json
 

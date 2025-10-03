@@ -31,23 +31,47 @@ YARS is a Python package designed to simplify the process of scraping Reddit for
 
 ## Installation
 
+### Option 1: Install directly from Git (Recommended)
+
+```bash
+pip install uv  # If you don't have uv installed
+uv pip install git+https://github.com/ktthross/yars.git
+```
+
+### Option 2: Development Installation
+
 1. Clone the repository:
-
-   ```
-   git clone https://github.com/datavorous/YARS.git
-   ```
-   Navigate inside the ```src``` folder.
-
-2. Install ```uv``` (if not already installed):
-
-   ```
-   pip install uv
+   ```bash
+   git clone https://github.com/ktthross/yars.git
+   cd yars
    ```
 
-3. Run the application:
+2. Create a virtual environment and install:
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv pip install -e .
    ```
-   uv run example/example.py
+
+3. Run the example:
+   ```bash
+   python example/example.py
    ```
+
+## Usage
+
+After installation, you can import and use YARS in your Python code:
+
+```python
+from yars import YARS, display_results, download_image
+
+# Initialize the YARS Reddit scraper
+scraper = YARS()
+
+# Search Reddit
+results = scraper.search_reddit("OpenAI", limit=5)
+display_results(results, "Search Results")
+```
    It'll setup the virtual env, install the necessary packages and run the ```example.py``` program.
 
 ## Usage
