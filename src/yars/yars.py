@@ -7,6 +7,8 @@ import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
+from gaussian_sleep_sampler.sampler import GaussianSampler, GaussianComponent
+
 logger = logging.basicConfig(
     filename="YARS.log",
     level=logging.INFO,
@@ -15,7 +17,7 @@ logger = logging.basicConfig(
 
 
 class YARS:
-    __slots__ = ("headers", "session", "proxy", "timeout")
+    __slots__ = ("headers", "session", "proxy", "sleep_sampler", "timeout")
 
     def __init__(self, proxy=None, timeout=10, random_user_agent=True):
         self.session = RandomUserAgentSession() if random_user_agent else requests.Session()
@@ -32,6 +34,15 @@ class YARS:
 
         if proxy:
             self.session.proxies.update({"http": proxy, "https": proxy})
+
+        self.sleep_sampler = GaussianSampler(
+            [
+                GaussianComponent(name="quick_click", mean=1.5, std=0.5, weight=2, lower_bound=0.5),
+                GaussianComponent(name="medium_click", mean=3, std=1, weight=7, lower_bound=0.5),
+                GaussianComponent(name="lounging", mean=9, std=1.5, weight=1, lower_bound=0.5, upper_bound=11),
+            ]
+        )
+
     def handle_search(self,url, params, after=None, before=None):
         if after:
             params["after"] = after
@@ -199,10 +210,8 @@ class YARS:
 
         logging.info("Successfully scraped user data for %s", username)
         return all_items
-
-    def fetch_subreddit_posts(
-        self, subreddit, limit=10, category="hot", time_filter="all"
-    ):
+    
+    def _fetch_raw_subreddit_post_data_generator(self, subreddit, limit=10, category="hot", time_filter="all"):
         logging.info(
             "Fetching subreddit/user posts for %s, limit: %d, category: %s, time_filter: %s",
             subreddit,
@@ -216,7 +225,6 @@ class YARS:
         batch_size = min(100, limit)
         total_fetched = 0
         after = None
-        all_posts = []
 
         while total_fetched < limit:
             if category == "hot":
@@ -244,6 +252,9 @@ class YARS:
                 logging.info("Subreddit/user posts request successful")
             except Exception as e:
                 logging.info("Subreddit/user posts request unsuccessful: %s", e)
+                # If there are exeptions, log and break the loop.
+
+                # If response is 200 then we just stop the generator
                 if response.status_code != 200:
                     print(
                         f"Failed to fetch posts for subreddit/user {subreddit}: {response.status_code}"
@@ -251,11 +262,48 @@ class YARS:
                     break
 
             data = response.json()
+
             posts = data["data"]["children"]
+
+            # If there are no posts then break the generator
             if not posts:
                 break
 
-            for post in posts:
+            yield posts
+
+
+            total_fetched += len(posts)
+
+            # If there is no after date token then there are no more posts to fetch and we can break the generator
+            after = data["data"].get("after")
+            if not after:
+                break
+
+            time.sleep(self.sleep_sampler.sample())
+
+    
+    def fetch_subreddit_post_image_metadata(self, subreddit, limit=10, category="hot", time_filter="all"):
+        subreddit_post_generator = self._fetch_raw_subreddit_post_data_generator(
+            subreddit, limit, category, time_filter
+            )
+
+        all_posts = []
+
+        for post_batch in subreddit_post_generator:
+            all_posts.extend(post_batch)
+        return all_posts
+
+    def fetch_subreddit_posts(
+        self, subreddit, limit=10, category="hot", time_filter="all"
+    ):
+        subreddit_post_generator = self._fetch_raw_subreddit_post_data_generator(
+            subreddit, limit, category, time_filter
+            )
+
+        all_posts = []
+
+        for post_batch in subreddit_post_generator:
+            for post in post_batch:
                 post_data = post["data"]
                 post_info = {
                     "title": post_data["title"],
@@ -275,16 +323,6 @@ class YARS:
                     post_info["thumbnail_url"] = post_data["thumbnail"]
 
                 all_posts.append(post_info)
-                total_fetched += 1
-                if total_fetched >= limit:
-                    break
-
-            after = data["data"].get("after")
-            if not after:
-                break
-
-            time.sleep(random.uniform(1, 2))
-            logging.info("Sleeping for random time")
 
         logging.info("Successfully fetched subreddit posts for %s", subreddit)
         return all_posts
