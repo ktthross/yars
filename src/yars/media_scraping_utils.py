@@ -86,15 +86,14 @@ def extract_reddit_media(post_json):
     return results
 
 
-def extract_from_listing(listing_json):
+def extract_from_listing(listing):
     """
     Extract all media + metadata from a Reddit listing (e.g. r/subreddit/new.json).
     Returns a list of dicts.
     """
     results = []
-    children = listing_json.get("data", {}).get("children", [])
 
-    for child in children:
+    for child in listing:
         if child.get("kind") == "t3":  # post
             results.extend(extract_reddit_media(child))
 

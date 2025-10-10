@@ -1,4 +1,4 @@
-import os
+import pathlib
 import csv
 import json
 import logging
@@ -46,9 +46,9 @@ def display_results(results, title):
         print("Error displaying results.")
 
 
-def download_image(image_url, output_folder="images", session=None):
+def download_image(image_url, output_folder: str | pathlib.Path = "images", session=None):
 
-    os.makedirs(output_folder, exist_ok=True)
+    output_folder = pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
 
     filename = os.path.basename(urlparse(image_url).path)
     filepath = os.path.join(output_folder, filename)

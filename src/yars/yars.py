@@ -6,6 +6,7 @@ import logging
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from yars import media_scraping_utils
 
 from gaussian_sleep_sampler.sampler import GaussianSampler, GaussianComponent
 
@@ -72,10 +73,12 @@ class YARS:
             )
         logging.info("Search Results Retrned %d Results", len(results))
         return results
+
     def search_reddit(self, query, limit=10, after=None, before=None):
         url = "https://www.reddit.com/search.json"
         params = {"q": query, "limit": limit, "sort": "relevance", "type": "link"}
         return self.handle_search(url, params, after, before)
+
     def search_subreddit(self, subreddit, query, limit=10, after=None, before=None, sort="relevance"):
         url = f"https://www.reddit.com/r/{subreddit}/search.json"
         params = {"q": query, "limit": limit, "sort": "relevance", "type": "link","restrict_sr":"on"}
@@ -287,11 +290,11 @@ class YARS:
             subreddit, limit, category, time_filter
             )
 
-        all_posts = []
+        all_image_data = []
 
         for post_batch in subreddit_post_generator:
-            all_posts.extend(post_batch)
-        return all_posts
+            all_image_data.extend(media_scraping_utils.extract_from_listing(post_batch))
+        return all_image_data
 
     def fetch_subreddit_posts(
         self, subreddit, limit=10, category="hot", time_filter="all"
