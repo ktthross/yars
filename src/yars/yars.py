@@ -291,9 +291,10 @@ class YARS:
             )
 
         all_image_data = []
-
         for post_batch in subreddit_post_generator:
-            all_image_data.extend(media_scraping_utils.extract_from_listing(post_batch))
+            image_data = media_scraping_utils.extract_from_listing(post_batch)
+            all_image_data.extend(image_data)
+
         return all_image_data
 
     def fetch_subreddit_posts(
