@@ -1,9 +1,8 @@
-import os
+import pathlib
 import csv
 import json
 import logging
 import requests
-from urllib.parse import urlparse
 from pygments import formatters, highlight, lexers
 
 logging.basicConfig(
@@ -46,29 +45,73 @@ def display_results(results, title):
         print("Error displaying results.")
 
 
-def download_image(image_url, output_folder="images", session=None):
-
-    os.makedirs(output_folder, exist_ok=True)
-
-    filename = os.path.basename(urlparse(image_url).path)
-    filepath = os.path.join(output_folder, filename)
-
+def download_image(image_url, output_file: pathlib.Path, session=None):
     if session is None:
         session = requests.Session()
 
     try:
         response = session.get(image_url, stream=True)
         response.raise_for_status()
-        with open(filepath, "wb") as f:
+        with output_file.open("wb") as f:
             for chunk in response.iter_content(8192):
                 f.write(chunk)
-        logging.info("Downloaded: %s", filepath)
-        return filepath
+        logging.info(f"Downloaded: {output_file}")
+        return output_file
     except requests.RequestException as e:
         logging.error("Failed to download %s: %s", image_url, e)
         return None
     except Exception as e:
         logging.error("An error occurred while saving the image: %s", e)
+        return None
+
+
+def download_video(video_url, output_file: pathlib.Path, session=None):
+    """
+    Download a video from a Reddit URL to the specified output file.
+    
+    Args:
+        video_url (str): The URL of the video to download
+        output_file (str | pathlib.Path): The path where the video should be saved
+        session (requests.Session, optional): An existing requests session to use
+        
+    Returns:
+        pathlib.Path | None: The output file path if successful, None if failed
+    """
+    if session is None:
+        session = requests.Session()
+    
+    # Create the parent directory if it doesn't exist
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # Add headers that Reddit video servers expect
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://www.reddit.com/',
+            'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8'
+        }
+        
+        response = session.get(video_url, stream=True, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        # Check if the response contains video content
+        content_type = response.headers.get('Content-Type', '')
+        if not content_type.startswith('video/'):
+            logging.warning(f"URL does not appear to be a video: {video_url} (Content-Type: {content_type})")
+        
+        with output_file.open("wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # Filter out keep-alive chunks
+                    f.write(chunk)
+        
+        logging.info(f"Downloaded video: {output_file}")
+        return output_file
+        
+    except requests.RequestException as e:
+        logging.error("Failed to download video %s: %s", video_url, e)
+        return None
+    except Exception as e:
+        logging.error("An error occurred while saving the video: %s", e)
         return None
 
 
