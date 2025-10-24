@@ -16,6 +16,9 @@ logger = logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
+SUBREDDIT_URL_TEMPLATE = "https://www.reddit.com/r/{subreddit}/{category}.json"
+USER_URL_TEMPLATE = "https://www.reddit.com/user/{subreddit}/submitted/{category}.json"
+
 
 class YARS:
     __slots__ = ("headers", "session", "proxy", "sleep_sampler", "timeout")
@@ -214,7 +217,7 @@ class YARS:
         logging.info("Successfully scraped user data for %s", username)
         return all_items
     
-    def _fetch_raw_subreddit_post_data_generator(self, subreddit, limit=10, category="hot", time_filter="all"):
+    def _fetch_raw_subreddit_post_data_generator(self, subreddit, subreddit_is_a_user_profile: bool = False, limit=10, category="hot", time_filter="all"):
         logging.info(
             "Fetching subreddit/user posts for %s, limit: %d, category: %s, time_filter: %s",
             subreddit,
@@ -222,26 +225,21 @@ class YARS:
             category,
             time_filter,
         )
-        if category not in ["hot", "top", "new", "userhot", "usertop", "usernew"]:
-            raise ValueError("Category for Subredit must be either 'hot', 'top', or 'new' or for User must be 'userhot', 'usertop', or 'usernew'")
+        if category not in ["hot", "top", "new"]:
+            raise ValueError("Category for Subredit must be either 'hot', 'top', or 'new'")
 
         batch_size = min(100, limit)
         total_fetched = 0
         after = None
 
+        if subreddit_is_a_user_profile:
+            url_template = USER_URL_TEMPLATE
+        else:
+            url_template = SUBREDDIT_URL_TEMPLATE
+
+        url = url_template.format(subreddit=subreddit, category=category)
+
         while total_fetched < limit:
-            if category == "hot":
-                url = f"https://www.reddit.com/r/{subreddit}/hot.json"
-            elif category == "top":
-                url = f"https://www.reddit.com/r/{subreddit}/top.json"
-            elif category == "new":
-                url = f"https://www.reddit.com/r/{subreddit}/new.json"
-            elif category == "userhot":
-                url = f"https://www.reddit.com/user/{subreddit}/submitted/hot.json"
-            elif category == "usertop":
-                url = f"https://www.reddit.com/user/{subreddit}/submitted/top.json"
-            else:
-                url = f"https://www.reddit.com/user/{subreddit}/submitted/new.json"
 
             params = {
                 "limit": batch_size,
@@ -284,11 +282,11 @@ class YARS:
 
             time.sleep(self.sleep_sampler.sample())
 
-    
-    def fetch_subreddit_post_image_metadata(self, subreddit, limit=10, category="hot", time_filter="all"):
+
+    def fetch_subreddit_post_image_metadata(self, subreddit, subreddit_is_a_user_profile: bool = False, limit=10, category="hot", time_filter="all"):
         subreddit_post_generator = self._fetch_raw_subreddit_post_data_generator(
-            subreddit, limit, category, time_filter
-            )
+            subreddit, subreddit_is_a_user_profile=subreddit_is_a_user_profile, limit=limit, category=category, time_filter=time_filter
+        )
 
         all_image_data = []
         for post_batch in subreddit_post_generator:
@@ -298,11 +296,11 @@ class YARS:
         return all_image_data
 
     def fetch_subreddit_posts(
-        self, subreddit, limit=10, category="hot", time_filter="all"
+        self, subreddit, subreddit_is_a_user_profile: bool = False, limit=10, category="hot", time_filter="all"
     ):
         subreddit_post_generator = self._fetch_raw_subreddit_post_data_generator(
-            subreddit, limit, category, time_filter
-            )
+            subreddit, subreddit_is_a_user_profile=False, limit=limit, category=category, time_filter=time_filter
+        )
 
         all_posts = []
 
