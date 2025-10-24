@@ -197,24 +197,27 @@ def extract_redgifs_media(data, meta):
     # Try to find a RedGIFs id
     red_id = extract_redgifs_id_from_url(url) or extract_redgifs_id_from_url(content_html) or extract_redgifs_id_from_url(oembed.get("thumbnail_url", ""))
 
-    # Prefer resolving a direct MP4 URL via the RedGIFs API
-    direct_mp4 = get_redgifs_mp4_url(red_id) if red_id else None
-
-    # Prefer an embed src if present in the content HTML
-    embed_url = None
-    m = re.search(r'src=["\']([^"\']+)["\']', content_html)
-    if m:
-        embed_url = m.group(1)
-
-    # Fallback to canonical watch URL (page) or thumbnail if no embed found
-    final_url = direct_mp4 or embed_url or url or oembed.get("thumbnail_url") or ""
-
-    if not final_url:
+    # We only include the RedGIFs id in the metadata here.  Resolution to a
+    # direct MP4 URL is performed by the downloader using the id. This avoids
+    # storing or propagating full RedGIFs embed/watch URLs in the metadata.
+    if not red_id:
         return results
 
-    extension = extract_media_file_extension_from_url(final_url) or "mp4"
+    # Use a sensible default extension for RedGIFs media; downloader may
+    # override by resolving the actual MP4 URL later.
+    extension = "mp4"
 
-    item = {**meta, "type": "video", "url": final_url, "media_id": red_id, "extension": extension, "provider": "redgifs"}
+    # Include a dedicated `redgifs_id` so callers can detect RedGIFs posts
+    # and use the RedGIFs-specific downloader. Keep `media_id` for compatibility.
+    item = {
+        **meta,
+        "type": "video",
+        "url": None,
+        "media_id": red_id,
+        "redgifs_id": red_id,
+        "extension": extension,
+        "provider": "redgifs",
+    }
     results.append(item)
     return results
 

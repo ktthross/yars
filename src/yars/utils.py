@@ -3,11 +3,14 @@ import csv
 import json
 import logging
 import requests
+import redgifs
 from pygments import formatters, highlight, lexers
 
 logging.basicConfig(
     level=logging.INFO, filename="YARS.log", format="%(asctime)s - %(message)s"
 )
+
+REDGIFS_CLIENT: redgifs.API | None = None
 
 
 def display_results(results, title):
@@ -113,6 +116,14 @@ def download_video(video_url, output_file: pathlib.Path, session=None):
     except Exception as e:
         logging.error("An error occurred while saving the video: %s", e)
         return None
+    
+def download_redgifs_video(redgifs_id, output_file: pathlib.Path):
+    global REDGIFS_CLIENT
+    if REDGIFS_CLIENT is None:
+        REDGIFS_CLIENT = redgifs.API().login()
+    gif = REDGIFS_CLIENT.get_gif(redgifs_id)
+    gif_url = gif.urls.hd or gif.urls.sd
+    REDGIFS_CLIENT.download(gif_url, str(output_file))
 
 
 def export_to_json(data, filename="output.json"):
