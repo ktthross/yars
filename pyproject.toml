@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yars"
-version = "0.2.0"
+version = "0.3.0"
 description = "YARS (Yet Another Reddit Scraper) - A Python package for scraping Reddit"
 readme = "README.md"
 license = "MIT"
