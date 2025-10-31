@@ -16,36 +16,28 @@ REDGIFS_CLIENT: redgifs.API | None = None
 def display_results(results, title):
 
     try:
-        print(f"\n{'-'*20} {title} {'-'*20}")
+        logging.info("Displaying results: %s", title)
+        # Log a simple separator instead of printing to stdout
+        logging.info("%s %s %s", '-' * 20, title, '-' * 20)
 
         if isinstance(results, list):
             for item in results:
                 if isinstance(item, dict):
                     formatted_json = json.dumps(item, sort_keys=True, indent=4)
-                    colorful_json = highlight(
-                        formatted_json,
-                        lexers.JsonLexer(),
-                        formatters.TerminalFormatter(),
-                    )
-                    print(colorful_json)
+                    logging.info(formatted_json)
                 else:
-                    print(item)
+                    logging.info(str(item))
         elif isinstance(results, dict):
             formatted_json = json.dumps(results, sort_keys=True, indent=4)
-            colorful_json = highlight(
-                formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()
-            )
-            print(colorful_json)
+            logging.info(formatted_json)
         else:
             logging.warning(
-                "No results to display: expected a list or dictionary, got %S",
+                "No results to display: expected a list or dictionary, got %s",
                 type(results),
             )
-            print("No results to display.")
 
     except Exception as e:
-        logging.error(f"Error displaying results: {e}")
-        print("Error displaying results.")
+        logging.error("Error displaying results: %s", e)
 
 
 def download_image(image_url, output_file: pathlib.Path, session=None):
@@ -119,20 +111,45 @@ def download_video(video_url, output_file: pathlib.Path, session=None):
     
 def download_redgifs_video(redgifs_id, output_file: pathlib.Path):
     global REDGIFS_CLIENT
-    if REDGIFS_CLIENT is None:
-        REDGIFS_CLIENT = redgifs.API().login()
-    gif = REDGIFS_CLIENT.get_gif(redgifs_id)
-    gif_url = gif.urls.hd or gif.urls.sd
-    REDGIFS_CLIENT.download(gif_url, str(output_file))
+    try:
+        # Initialize the client inside the try so any HTTP errors during login
+        # are also handled by the same exception block.
+        if REDGIFS_CLIENT is None:
+            REDGIFS_CLIENT = redgifs.API().login()
+
+        gif = REDGIFS_CLIENT.get_gif(redgifs_id)
+        gif_url = gif.urls.hd or gif.urls.sd
+        REDGIFS_CLIENT.download(gif_url, str(output_file))
+        return output_file
+
+    except redgifs.errors.HTTPException as herr:
+        # Handle known HTTP errors from the RedGIFs client gracefully.
+        status = getattr(herr, "status_code", None)
+        if status == 404:
+            logging.info("RedGIFs not found for ID %s: %s", redgifs_id, herr)
+            return None
+        if status == 410:
+            logging.info("RedGIFs resource gone for ID %s: %s", redgifs_id, herr)
+            return None
+        # For other HTTP errors, log and return None
+        logging.error("RedGIFs HTTP error for ID %s: %s", redgifs_id, herr)
+        logging.debug("Error status: %s", status)
+        logging.debug("Error type: %s", type(herr))
+        return None
+
+    except Exception as err:
+        # Catch all other exceptions and return None so callers can check result.
+        logging.error("Failed to download RedGIFs video %s: %s", redgifs_id, err)
+        return None
 
 
 def export_to_json(data, filename="output.json"):
     try:
         with open(filename, "w", encoding="utf-8") as json_file:
             json.dump(data, json_file, indent=4)
-        print(f"Data successfully exported to {filename}")
+        logging.info("Data successfully exported to %s", filename)
     except Exception as e:
-        print(f"Error exporting to JSON: {e}")
+        logging.error("Error exporting to JSON: %s", e)
 
 
 def export_to_csv(data, filename="output.csv"):
@@ -142,6 +159,6 @@ def export_to_csv(data, filename="output.csv"):
             dict_writer = csv.DictWriter(output_file, fieldnames=keys)
             dict_writer.writeheader()
             dict_writer.writerows(data)
-        print(f"Data successfully exported to {filename}")
+        logging.info("Data successfully exported to %s", filename)
     except Exception as e:
-        print(f"Error exporting to CSV: {e}")
+        logging.error("Error exporting to CSV: %s", e)
