@@ -9,7 +9,16 @@ from .sessions import RandomUserAgentSession
 from .utils import display_results, download_image, download_video, export_to_json, export_to_csv
 from .agents import get_agent
 
-__version__ = "0.2.0"
+try:
+    from importlib.metadata import version, PackageNotFoundError
+except ImportError:
+    from importlib_metadata import version, PackageNotFoundError  # type: ignore
+
+try:
+    __version__ = version("yars")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 __all__ = [
     "YARS",
     "RandomUserAgentSession", 
