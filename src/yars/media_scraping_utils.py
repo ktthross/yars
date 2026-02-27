@@ -27,6 +27,8 @@ def extract_gallery_media(data, meta):
     gallery_items = gallery_data.get("items", [])
     for item in gallery_items:
         media_id = item.get("media_id")
+        if media_metadata is None or media_id is None:
+            continue
         meta_info = media_metadata.get(media_id)
         if not meta_info:
             continue

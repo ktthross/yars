@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yars"
-version = "0.3.1"
+version = "0.1.0"
 description = "YARS (Yet Another Reddit Scraper) - A Python package for scraping Reddit"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 authors = [
     {name = "ktthross"},
 ]
@@ -29,10 +29,8 @@ classifiers = [
 ]
 dependencies = [
     "flask>=3.0.3",
-    "gaussian-sleep-sampler",
     "meta-ai-api>=1.2.1",
     "pygments>=2.18.0",
-    "redgifs",
     "requests>=2.32.3",
 ]
 
@@ -43,10 +41,6 @@ Issues = "https://github.com/ktthross/yars/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/yars"]
-
-[tool.uv.sources]
-gaussian-sleep-sampler = { git = "https://github.com/ktthross/gaussian_sleep_sampler" }
-redgifs = { git = "https://github.com/ktthross/redgifs.git" }
 
 [project.optional-dependencies]
 dev = [
